@@ -64,18 +64,31 @@ slackr_users <- function(api_token=Sys.getenv("SLACK_API_TOKEN")) {
 #' @return data.table of channels
 #' @rdname slackr_channels
 #' @export
-slackr_channels <- function(api_token=Sys.getenv("SLACK_API_TOKEN")) {
+slackr_channels <- function(token = Sys.getenv("SLACK_API_TOKEN")) {
+  c1 <- list_channels(token = token, types = "public_channel")
+  c2 <- list_channels(token = token, types = "private_channel")
 
-  loc <- Sys.getlocale('LC_CTYPE')
-  Sys.setlocale('LC_CTYPE','C')
-  on.exit(Sys.setlocale("LC_CTYPE", loc))
-
-  tmp <- POST("https://slack.com/api/channels.list",
-              body=list(token=api_token))
-  stop_for_status(tmp)
-  jsonlite::fromJSON(content(tmp, as="text"))$channels
-
+  bind_rows(c1, c2)
 }
+
+list_channels <- function(token = Sys.getenv("SLACK_API_TOKEN"), types = "public_channel", exclude_archived = TRUE, ...) {
+  with_pagination(
+    function(cursor) {
+      call_slack_api(
+        "/api/conversations.list",
+        .method = GET,
+        token = token,
+        types = types,
+        exclude_archived = exclude_archived,
+        limit = 1000,
+        ...,
+        .next_cursor = cursor
+      )
+    },
+    extract = "channels"
+  )
+}
+
 
 #' Get a data frame of Slack groups
 #'
