@@ -64,7 +64,7 @@ slackr_users <- function(api_token=Sys.getenv("SLACK_API_TOKEN")) {
 #' @return data.table of channels
 #' @rdname slackr_channels
 #' @export
-slackr_channels <- function(token = Sys.getenv("SLACK_API_TOKEN")) {
+slackr_channels <- function(api_token = Sys.getenv("SLACK_API_TOKEN")) {
   c1 <- list_channels(token = token, types = "public_channel")
   c2 <- list_channels(token = token, types = "private_channel")
 
@@ -88,6 +88,42 @@ list_channels <- function(token = Sys.getenv("SLACK_API_TOKEN"), types = "public
     extract = "channels"
   )
 }
+with_pagination <- function(fun, extract) {
+  done <- FALSE
+  old_cursor <- ""
+  next_cursor <- ""
+  result <- NA
+  had_to_cursor <- FALSE
+  while (!done) {
+    # make the api call
+    r <- match.fun(fun)(cursor = next_cursor)
+    # retrieve the next cursor
+    gn <- get_next_cursor(r)
+    # gr <- get_retry_after(r)
+
+    if (is.null(gn) || gn == "") {
+      done <- TRUE
+      next_cursor <- ""
+    } else {
+      if (gn == old_cursor) abort("Repeating cursor: ", gn)
+      inform(".", appendLF = FALSE)
+      had_to_cursor <- TRUE
+      old_cursor <- next_cursor
+      next_cursor <- gn
+      # Sys.sleep(0.1)
+    }
+    if (isTRUE(is.na(result))) {
+      result <- convert_response_to_tibble(r, extract)
+    } else {
+      result <- bind_rows(
+        result, convert_response_to_tibble(r, extract)
+      )
+    }
+  }
+  if (had_to_cursor) inform("")
+  result
+}
+
 
 
 #' Get a data frame of Slack groups
