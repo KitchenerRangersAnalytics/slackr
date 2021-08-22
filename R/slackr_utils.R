@@ -65,13 +65,13 @@ slackr_users <- function(api_token=Sys.getenv("SLACK_API_TOKEN")) {
 #' @rdname slackr_channels
 #' @export
 slackr_channels <- function(api_token = Sys.getenv("SLACK_API_TOKEN")) {
-  c1 <- list_channels(token = token, types = "public_channel")
-  c2 <- list_channels(token = token, types = "private_channel")
+  c1 <- list_channels(api_token = token, types = "public_channel")
+  c2 <- list_channels(api_token = token, types = "private_channel")
 
   bind_rows(c1, c2)
 }
 
-list_channels <- function(token = Sys.getenv("SLACK_API_TOKEN"), types = "public_channel", exclude_archived = TRUE, ...) {
+list_channels <- function(api_token = Sys.getenv("SLACK_API_TOKEN"), types = "public_channel", exclude_archived = TRUE, ...) {
   with_pagination(
     function(cursor) {
       call_slack_api(
